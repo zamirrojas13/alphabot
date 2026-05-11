@@ -8,7 +8,7 @@ import http.server, socketserver, json, csv, io, subprocess, sys, time, base64, 
 from pathlib import Path
 from urllib.parse import urlparse
 
-CB_KEYS_FILE = Path(__file__).parent / ".keys" / "coinbase.json"
+CB_KEYS_FILE = Path(os.environ.get("ALPHABOT_KEYS_DIR", str(Path(__file__).parent / ".keys"))) / "coinbase.json"
 
 def _load_cb_keys():
     if not CB_KEYS_FILE.exists(): return None, None
@@ -72,7 +72,7 @@ def _cb_request(method, path, body=""):
 
 PORT = 8765
 ROOT = Path(__file__).parent / "static"
-ORACLE_KEY = str(Path(__file__).parent / ".keys" / "oracle.key")
+ORACLE_KEY = str(Path(os.environ.get("ALPHABOT_KEYS_DIR", str(Path(__file__).parent / ".keys"))) / "oracle.key")
 ORACLE_HOST = "ubuntu@163.192.100.135"
 
 # Cache to avoid hammering SSH on every request
@@ -162,6 +162,11 @@ def _refresh_cache():
                 row["open"] = not row.get("exit_price")
                 trades.append(row)
             break
+
+    # Inject dry_run flag so dashboard can show paper mode banner
+    if state is not None:
+        active = state.get("active_trade", {}) or {}
+        state["dry_run"] = active.get("dry_run", True)  # default True until confirmed live
 
     _CACHE["state"]  = state
     _CACHE["trades"] = trades
@@ -261,6 +266,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._handle_trading_mode_get()
         if path == "/api/backtest":
             return self._handle_backtest()
+        if path == "/api/strategies":
+            raw = _ssh_cat("/home/ubuntu/btc-bot/strategy_registry.json")
+            if raw:
+                try: return self._send_json(json.loads(raw))
+                except: pass
+            return self._send_json({"err": "registry not available"})
         if path == "/api/health":
             return self._send_json({"ok": True, "ts": int(time.time()),
                                      "cache_age_s": int(time.time() - _CACHE["ts"])})

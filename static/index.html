@@ -32,11 +32,11 @@
 <script type="text/babel" src="data.js?v=15"></script>
 <!-- Components -->
 <script type="text/babel" src="components/Sidebar.jsx?v=15"></script>
-<script type="text/babel" src="components/Overview.jsx?v=14"></script>
+<script type="text/babel" src="components/Overview.jsx?v=15"></script>
 <script type="text/babel" src="components/Chart.jsx?v=19"></script>
 <script type="text/babel" src="components/BotControl.jsx?v=14"></script>
 <script type="text/babel" src="components/Journal.jsx?v=16"></script>
-<script type="text/babel" src="components/Ledger.jsx?v=14"></script>
+<script type="text/babel" src="components/Ledger.jsx?v=15"></script>
 <script type="text/babel" src="components/Analytics.jsx?v=14"></script>
 <script type="text/babel" src="components/RiskMonitor.jsx?v=14"></script>
 <script type="text/babel" src="components/SignalCheck.jsx?v=14"></script>
@@ -237,15 +237,33 @@ function App() {
       <Sidebar active={page} setActive={setPage} botStatus={botStatus} />
 
       {/* All pages mounted; only active one visible */}
-      <div style={{ flex:1, position:'relative', overflow:'hidden' }}>
-        {PAGE_DEFS.map(({ id, el }) => (
-          <div key={id} style={{
-            position:'absolute', inset:0, overflowY:'auto',
-            display: page === id ? 'block' : 'none',
+      <div style={{ flex:1, position:'relative', overflow:'hidden', display:'flex', flexDirection:'column' }}>
+
+        {/* Paper mode banner — always visible when bot is in dry-run */}
+        {data.bot_state?.dry_run !== false && (
+          <div style={{
+            background:'rgba(247,147,26,0.12)', borderBottom:'1px solid rgba(247,147,26,0.3)',
+            padding:'6px 20px', display:'flex', alignItems:'center', gap:10, flexShrink:0,
+            fontFamily:"'Space Grotesk',sans-serif", fontSize:12, color:'#F7931A', fontWeight:600,
           }}>
-            {el}
+            <span style={{fontSize:14}}>⚠</span>
+            PAPER TRADING MODE — No real money at risk. All trades are simulated.
+            <span style={{marginLeft:'auto', fontSize:11, color:'rgba(247,147,26,0.6)', fontWeight:400}}>
+              Switch to Live in Journal → Trading Mode when ready
+            </span>
           </div>
-        ))}
+        )}
+
+        <div style={{ flex:1, position:'relative', overflow:'hidden' }}>
+          {PAGE_DEFS.map(({ id, el }) => (
+            <div key={id} style={{
+              position:'absolute', inset:0, overflowY:'auto',
+              display: page === id ? 'block' : 'none',
+            }}>
+              {el}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Tweaks panel */}

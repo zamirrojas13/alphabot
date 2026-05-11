@@ -255,6 +255,23 @@ function Ledger({ data, viewMode, setViewMode, dateRange }) {
     ? `Backtest · $${START_BAL.toLocaleString('en-US')} start · ${dateRange?.start?.slice(0,4) ?? '2017'}→${dateRange?.end?.slice(0,4) ?? 'now'}`
     : 'Live — syncing from bot ledger';
 
+  const exportCSV = () => {
+    const headers = ['trade_id','timestamp_entry','timestamp_exit','setup_type','direction','tier',
+      'entry_price','exit_price','exit_reason','pnl_usd','fees_usd','pnl_net_usd','r_multiple','bars_held'];
+    const lines = [headers.join(',')];
+    rows.forEach(t => {
+      lines.push(headers.map(h => {
+        const v = t[h] ?? '';
+        return String(v).includes(',') ? `"${v}"` : v;
+      }).join(','));
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `alphabot_trades_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  };
+
   return (
     <div style={lStyles.wrap}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
@@ -262,7 +279,16 @@ function Ledger({ data, viewMode, setViewMode, dateRange }) {
           <div style={lStyles.pageTitle}>Ledger &amp; P&amp;L</div>
           <div style={{fontSize:12, color: isSim ? '#F7931A' : '#00d084', marginTop:4}}>{subLabel}</div>
         </div>
-        {viewMode !== undefined && <ViewToggle viewMode={viewMode} setViewMode={setViewMode} dateRange={dateRange} />}
+        <div style={{display:'flex', gap:10, alignItems:'center'}}>
+          {rows.length > 0 && (
+            <button onClick={exportCSV} style={{
+              padding:'7px 14px', borderRadius:6, border:'1px solid #1f1f28',
+              background:'#111116', color:'#5a5a6e', cursor:'pointer',
+              fontFamily:"'Space Grotesk',sans-serif", fontSize:12, fontWeight:600,
+            }}>⬇ Export CSV</button>
+          )}
+          {viewMode !== undefined && <ViewToggle viewMode={viewMode} setViewMode={setViewMode} dateRange={dateRange} />}
+        </div>
       </div>
 
       <LedgerKPIs stats={stats} startBalance={START_BAL} hasTrades={trades.length > 0} />

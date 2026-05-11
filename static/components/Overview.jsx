@@ -75,6 +75,29 @@ function stripTgPreview(raw) {
     .trim();
 }
 
+const STRAT_DESCS = {
+  't1a_w_fail_brkdn_long':          'Price broke below a key low but recovered. The drop was a fakeout — smart money absorbed all the sellers.',
+  't1b_w_rsi_os_long':              'Price dropped so far it\'s exhausted. Weekly RSI in oversold territory signals a major bounce opportunity.',
+  't1c_d_sstar_short':              'Price pushed to a new high but got rejected hard. Daily shooting star = buyers are tapped out.',
+  't1d_h4_sweep_hi_short':          '4-hour price poked above resistance briefly then came back. Classic stop hunt before a reversal.',
+  't1e_w_oversold_hammer_long':     'In an uptrend, price dipped but bounced strongly off the low. Weekly hammer in uptrend = buy the dip.',
+  't1f_h4_willy_rev_short':         'Momentum pushed overbought on both fast and slow signals, then both confirmed reversal. Daily and weekly trend both down.',
+  't2c_w_bull_engulf_long':         'Big green weekly candle swallowed the prior red. Momentum confirmed back up — trend resuming.',
+  't1g_h4_vol_surge_long':          'Massive volume at a low with oversold momentum confirmed on two timeframes — strong reversal signal.',
+  't1h_h4_vol_surge_short':         'Massive volume at a high with overbought momentum — exhaustion signal confirmed on two timeframes.',
+  't2a_d_hammer_long':              'Daily candle had long lower wick — buyers stepped in aggressively at the low. Reversal likely.',
+  't2b_w_sweep_hi_short':           'Weekly price spiked above a key high then snapped back. Bulls tried and failed — bears in control.',
+  't2d_d_squeeze_brk_long':         'Price coiled tight for 3 days then broke out above the range with volume. Energy release — momentum trade.',
+  't2e_w_mo_reclaim_long':          'Weekly price dipped below the monthly open but reclaimed it with volume. Monthly bias reasserting.',
+  't2f_h4_rsi_bear_div_short':      'Price made a new high but momentum was weaker. Classic divergence — the move is losing fuel.',
+  't2g_d_bull_flag_long':           '5-day tight consolidation in an uptrend breaks out with volume. Classic continuation setup.',
+  't3a_h1_fail_brkdn_long':         '1-hour price broke a low then recovered instantly. Short-term fakeout bounce.',
+  't3b_h4_sweep_hi_short_loose':    '4-hour price quickly tagged a high and rejected. Looser version of the 4H sweep — lower tier.',
+  't3c_w_5bar_low_long':            'Price made a 5-week low then turned. Contrarian reversal at multi-week lows.',
+  'c3_w_engulf_long':               'Weekly bullish engulfing candle — the entire prior week\'s range consumed by buyers.',
+  'c5_w_hammer_20w_low_long':       'Price hit a 20-week low and printed a hammer. Exhaustion at a major support level.',
+};
+
 const STRAT_NAMES = {
   't1c_d_sstar_short':              'Daily A · Failed Top',
   't2b_w_sweep_hi_short':           'Weekly A · Top Trap',
@@ -378,8 +401,19 @@ function Overview({ data, viewMode, setViewMode, dateRange }) {
                 const name  = STRAT_NAMES[type.toLowerCase()] || type.replace(/_/g,' ').replace(/^t\d[a-z]?\s/i,'');
                 const isLong = type.toLowerCase().endsWith('long');
                 const col   = wr >= 60 ? '#00d084' : wr >= 40 ? '#F7931A' : '#ff4d6d';
+                const desc = STRAT_DESCS[type.toLowerCase()] || '';
+                const [tip, setTip] = React.useState(false);
                 return (
-                  <div key={type} style={{background:'#0d0d11', borderRadius:8, padding:'10px 12px', border:'1px solid #1a1a22', display:'flex', flexDirection:'column', gap:4}}>
+                  <div key={type}
+                    onMouseEnter={() => setTip(true)} onMouseLeave={() => setTip(false)}
+                    style={{background:'#0d0d11', borderRadius:8, padding:'10px 12px', border:`1px solid ${tip?'#2a2a38':'#1a1a22'}`, display:'flex', flexDirection:'column', gap:4, position:'relative', cursor:'default', transition:'border-color 0.15s'}}>
+                    {tip && desc && (
+                      <div style={{position:'absolute', bottom:'calc(100% + 6px)', left:0, right:0, background:'#17171e',
+                        border:'1px solid #2a2a38', borderRadius:6, padding:'8px 10px', fontSize:11, color:'#ece9e2',
+                        lineHeight:1.5, zIndex:100, boxShadow:'0 4px 16px rgba(0,0,0,0.5)'}}>
+                        {desc}
+                      </div>
+                    )}
                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
                       <span style={{fontSize:10, color:'#5a5a6e', lineHeight:1.35, flex:1, marginRight:4}}>{name}</span>
                       <span style={{fontSize:9, fontWeight:700, padding:'2px 5px', borderRadius:3, flexShrink:0,
