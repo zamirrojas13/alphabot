@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlphaBot — BTC Trading Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0a0a0c; color: #ece9e2; font-family: 'Space Grotesk', sans-serif; overflow: hidden; }
+    #root { display: flex; height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1f1f28; border-radius: 4px; }
+    input[type=range] { -webkit-appearance: none; height: 4px; background: #1f1f28; border-radius: 2px; outline: none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #F7931A; cursor: pointer; }
+    button:hover { filter: brightness(1.15); }
+    select { color-scheme: dark; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+<script src="vendor/react.development.js"></script>
+<script src="vendor/react-dom.development.js"></script>
+<script src="vendor/babel.min.js"></script>
+
+<!-- Data -->
+<script type="text/babel" src="data.js?v=15"></script>
+<!-- Components -->
+<script type="text/babel" src="components/Sidebar.jsx?v=15"></script>
+<script type="text/babel" src="components/Overview.jsx?v=14"></script>
+<script type="text/babel" src="components/Chart.jsx?v=19"></script>
+<script type="text/babel" src="components/BotControl.jsx?v=14"></script>
+<script type="text/babel" src="components/Journal.jsx?v=16"></script>
+<script type="text/babel" src="components/Ledger.jsx?v=14"></script>
+<script type="text/babel" src="components/Analytics.jsx?v=14"></script>
+<script type="text/babel" src="components/RiskMonitor.jsx?v=14"></script>
+<script type="text/babel" src="components/SignalCheck.jsx?v=14"></script>
+<script type="text/babel" src="components/Strategy.jsx?v=14"></script>
+<script type="text/babel" src="components/Telegram.jsx?v=14"></script>
+<script type="text/babel" src="components/CoinbaseAccount.jsx?v=1"></script>
+
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentColor": "#F7931A",
+  "bgColor": "#0a0a0c",
+  "surfaceColor": "#111116",
+  "compactMode": false
+}/*EDITMODE-END*/;
+
+// ── Shared view-mode toggle ────────────────────────────────────────────────
+function ViewToggle({ viewMode, setViewMode, dateRange }) {
+  const isSim = viewMode === 'sim';
+  const rangeLabel = dateRange ? ` ${dateRange.start.slice(0,4)}→${dateRange.end.slice(0,4)}` : ' 2017→now';
+  return (
+    <div style={{display:'flex', alignItems:'center', gap:4, background:'#0d0d11', borderRadius:8, padding:4, border:'1px solid #1f1f28'}}>
+      <button onClick={() => setViewMode('live')}
+        style={{padding:'6px 14px', borderRadius:6, border:'none', cursor:'pointer',
+          fontFamily:"'Space Grotesk',sans-serif", fontSize:12, fontWeight:600,
+          background: !isSim ? '#111116' : 'transparent',
+          color:      !isSim ? '#00d084' : '#3e3e52',
+          display:'flex', alignItems:'center', gap:6,
+          boxShadow: !isSim ? '0 0 0 1px #1f1f28' : 'none'}}>
+        <span style={{width:6,height:6,borderRadius:'50%',background:'#00d084',display:'inline-block',
+          boxShadow: !isSim ? '0 0 6px #00d084' : 'none'}}></span>
+        Live Bot
+      </button>
+      <button onClick={() => setViewMode('sim')}
+        style={{padding:'6px 14px', borderRadius:6, border:'none', cursor:'pointer',
+          fontFamily:"'Space Grotesk',sans-serif", fontSize:12, fontWeight:600,
+          background: isSim ? '#111116' : 'transparent',
+          color:      isSim ? '#F7931A' : '#3e3e52',
+          boxShadow:  isSim ? '0 0 0 1px #1f1f28' : 'none'}}>
+        📊 Backtest{isSim ? rangeLabel : ''}
+      </button>
+    </div>
+  );
+}
+
+window.ViewToggle = ViewToggle;
+
+// ── Per-page error boundary — prevents one crashed page from blackening all ──
+class PageBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { err: null, info: null }; }
+  static getDerivedStateFromError(e) { return { err: e }; }
+  componentDidCatch(e, info) { this.setState({ err: e, info }); }
+  render() {
+    if (this.state.err) {
+      return (
+        <div style={{ padding:40, fontFamily:"'Space Grotesk',sans-serif" }}>
+          <div style={{ fontSize:13, fontWeight:700, color:'#ff4d6d', marginBottom:8 }}>
+            ⚠ Page error — {this.state.err?.message || 'unknown'}
+          </div>
+          <div style={{ fontSize:11, color:'#3e3e52', fontFamily:"'JetBrains Mono',monospace",
+                        background:'#0d0d11', padding:12, borderRadius:6, marginBottom:12,
+                        whiteSpace:'pre-wrap', maxHeight:200, overflow:'auto' }}>
+            {this.state.info?.componentStack?.slice(0,500)}
+          </div>
+          <button onClick={() => this.setState({ err:null, info:null })}
+            style={{ padding:'8px 18px', borderRadius:6, border:'1px solid #1f1f28',
+                     background:'#111116', color:'#ece9e2', cursor:'pointer',
+                     fontFamily:"'Space Grotesk',sans-serif", fontSize:12 }}>
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function App() {
+  const [page, setPage]         = React.useState('overview');
+  const [botStatus, setBotStatus] = React.useState('running');
+  const [tweaks, setTweaks]     = React.useState(TWEAK_DEFAULTS);
+  const [tweaksOpen, setTweaksOpen] = React.useState(false);
+  const [data, setData]         = React.useState(MOCK);
+  const [viewMode, setViewMode] = React.useState('live');
+  const [simData, setSimData]   = React.useState(null);
+
+  // ── Live data refresh (state + trades + Coinbase balance) ─────────────────
+  React.useEffect(() => {
+    let stop = false;
+    const refresh = async () => {
+      try {
+        const [stRes, trRes, cbRes] = await Promise.all([
+          fetch('/api/state').then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch('/api/trades').then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch('/api/coinbase').then(r => r.ok ? r.json() : null).catch(() => null),
+        ]);
+        if (stop) return;
+        const merged = { ...MOCK };
+
+        if (stRes && !stRes.err) {
+          merged.bot_state = {
+            ...MOCK.bot_state, ...stRes,
+            active_trade: stRes.active_trade || MOCK.bot_state.active_trade,
+          };
+          if (stRes.active_trade) {
+            const at = stRes.active_trade;
+            merged.position = {
+              symbol: 'BTC/USD', qty: at.qty_btc || 0,
+              avg_entry_price: at.entry || 0,
+              current_price: at.current_price || at.entry || 0,
+              unrealized_pl: at.unrealized_pl || 0, unrealized_plpc: 0,
+              side: at.side || 'long',
+            };
+          }
+        }
+
+        if (trRes?.trades?.length) merged.trades = trRes.trades;
+
+        // ── Wire real Coinbase cash/stablecoin balance into account ──────────
+        // Deliberately excludes BTC/XRP/ETH — only USD/USDC/USDT counted
+        if (cbRes?.configured && !cbRes.err && cbRes.total_usd > 0) {
+          merged.account = {
+            ...MOCK.account,
+            equity:       cbRes.total_usd,   // cash + stablecoins only
+            buying_power: cbRes.total_usd,
+            cash:         cbRes.total_usd,
+            btc:          cbRes.btc || 0,
+            btc_price:    cbRes.btc_price || 0,
+            account_size: MOCK.account.account_size,
+          };
+        }
+
+        setData(merged);
+      } catch (e) { /* stay on last good data */ }
+    };
+    refresh();
+    const id = setInterval(refresh, 15000);
+    return () => { stop = true; clearInterval(id); };
+  }, []);
+
+  // ── Load backtest data — merge with MOCK so no field is ever undefined ────
+  React.useEffect(() => {
+    fetch('/api/backtest').then(r => r.ok ? r.json() : null).then(d => {
+      if (!d || d.err) return;
+      setSimData({
+        ...MOCK,           // all MOCK fields as safe fallback
+        ...d,              // backtest overrides
+        config:    { ...MOCK.config,    ...(d.config    || {}) },
+        bot_state: { ...MOCK.bot_state, ...(d.bot_state || {}) },
+        account:   { ...MOCK.account,   ...(d.account   || {}) },
+        stats:     { ...MOCK.stats,     ...(d.stats     || {}) },
+      });
+    }).catch(() => {});
+  }, []);
+
+  // Active dataset
+  const activeData  = (viewMode === 'sim' && simData) ? simData : data;
+  const toggleProps = { viewMode, setViewMode, dateRange: simData?.date_range };
+
+  React.useEffect(() => {
+    document.documentElement.style.setProperty('--accent', tweaks.accentColor);
+  }, [tweaks.accentColor]);
+
+  React.useEffect(() => {
+    const handler = e => {
+      if (e.data?.type === '__activate_edit_mode')   setTweaksOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const setTweak = (k, v) => {
+    const next = { ...tweaks, [k]: v };
+    setTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: next }, '*');
+  };
+
+  // ── Page definitions ───────────────────────────────────────────────────────
+  // All pages stay MOUNTED (display:none when inactive) so charts/state
+  // survive navigation without teardown.
+  const PAGE_DEFS = [
+    { id:'overview',  el: <PageBoundary><Overview   data={activeData} {...toggleProps} /></PageBoundary> },
+    { id:'chart',     el: <PageBoundary><ChartPage  data={data} activePage={page} /></PageBoundary> },
+    { id:'bot',       el: <PageBoundary><BotControl data={data} botStatus={botStatus} setBotStatus={setBotStatus} /></PageBoundary> },
+    { id:'journal',   el: <PageBoundary><Journal    data={activeData} {...toggleProps} /></PageBoundary> },
+    { id:'ledger',    el: <PageBoundary><Ledger     data={activeData} {...toggleProps} /></PageBoundary> },
+    { id:'analytics', el: <PageBoundary><Analytics  data={activeData} {...toggleProps} /></PageBoundary> },
+    { id:'risk',      el: <PageBoundary><RiskMonitor data={activeData} {...toggleProps} /></PageBoundary> },
+    { id:'signal',    el: <PageBoundary><SignalCheck data={data} viewMode={viewMode} /></PageBoundary> },
+    { id:'strategy',  el: <PageBoundary><Strategy   data={data} /></PageBoundary> },
+    { id:'telegram',  el: <PageBoundary><TelegramPage data={data} /></PageBoundary> },
+    { id:'coinbase',  el: <PageBoundary><CoinbaseAccount data={data} /></PageBoundary> },
+  ];
+
+  return (
+    <div style={{ display:'flex', height:'100vh', width:'100%', background: tweaks.bgColor }}>
+      <Sidebar active={page} setActive={setPage} botStatus={botStatus} />
+
+      {/* All pages mounted; only active one visible */}
+      <div style={{ flex:1, position:'relative', overflow:'hidden' }}>
+        {PAGE_DEFS.map(({ id, el }) => (
+          <div key={id} style={{
+            position:'absolute', inset:0, overflowY:'auto',
+            display: page === id ? 'block' : 'none',
+          }}>
+            {el}
+          </div>
+        ))}
+      </div>
+
+      {/* Tweaks panel */}
+      {tweaksOpen && (
+        <div style={tweaksPanelStyle}>
+          <div style={tpStyles.header}>
+            <span style={tpStyles.title}>Tweaks</span>
+            <button onClick={() => { setTweaksOpen(false); window.parent.postMessage({type:'__edit_mode_dismissed'},'*'); }} style={tpStyles.close}>✕</button>
+          </div>
+          <div style={tpStyles.section}>
+            <div style={tpStyles.label}>Accent Color</div>
+            <div style={tpStyles.colorRow}>
+              {['#F7931A','#00d084','#a78bfa','#38bdf8','#fb7185'].map(c => (
+                <div key={c} onClick={() => setTweak('accentColor', c)}
+                  style={{...tpStyles.swatch, background:c, outline: tweaks.accentColor===c ? `2px solid ${c}` : '2px solid transparent', outlineOffset:2}} />
+              ))}
+            </div>
+          </div>
+          <div style={tpStyles.section}>
+            <div style={tpStyles.label}>Background</div>
+            <div style={tpStyles.colorRow}>
+              {['#0a0a0c','#090910','#0c0a0a','#08080e'].map(c => (
+                <div key={c} onClick={() => setTweak('bgColor', c)}
+                  style={{...tpStyles.swatch, background:c, border:'1px solid #2a2a38', outline: tweaks.bgColor===c ? '2px solid #F7931A' : '2px solid transparent', outlineOffset:2}} />
+              ))}
+            </div>
+          </div>
+          <div style={tpStyles.section}>
+            <div style={tpStyles.label}>Surface</div>
+            <div style={tpStyles.colorRow}>
+              {['#111116','#13131a','#0f0f14','#141420'].map(c => (
+                <div key={c} onClick={() => setTweak('surfaceColor', c)}
+                  style={{...tpStyles.swatch, background:c, border:'1px solid #2a2a38', outline: tweaks.surfaceColor===c ? '2px solid #F7931A' : '2px solid transparent', outlineOffset:2}} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const tweaksPanelStyle = {
+  position:'fixed', bottom:24, right:24, width:240, background:'#17171e', border:'1px solid #2a2a38',
+  borderRadius:12, padding:'16px', zIndex:1000, boxShadow:'0 8px 32px rgba(0,0,0,0.6)',
+  fontFamily:"'Space Grotesk',sans-serif",
+};
+const tpStyles = {
+  header: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 },
+  title: { fontSize:13, fontWeight:700, color:'#ece9e2' },
+  close: { background:'transparent', border:'none', color:'#5a5a6e', cursor:'pointer', fontSize:14, padding:4 },
+  section: { marginBottom:14 },
+  label: { fontSize:11, color:'#3e3e52', letterSpacing:'0.5px', marginBottom:8, textTransform:'uppercase' },
+  colorRow: { display:'flex', gap:8 },
+  swatch: { width:28, height:28, borderRadius:6, cursor:'pointer', transition:'transform 0.1s' },
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
