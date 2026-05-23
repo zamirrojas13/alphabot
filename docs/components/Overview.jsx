@@ -533,18 +533,14 @@ function Overview({ data, viewMode, setViewMode, dateRange, simData, onStrategyC
               </span>
             ))}
           </div>
-          <span style={ovStyles.btcLabel}>BTC Spot Price</span>
-          {btcPrice > 0
-            ? <span style={ovStyles.btcVal}>${btcPrice.toLocaleString('en-US')}</span>
-            : <span style={{...ovStyles.btcVal, color:'#ff4d6d', fontSize:16}}>Price feed error</span>}
+          <span style={ovStyles.btcLabel}>AlphaBot v9 Backtest</span>
+          <span style={{...ovStyles.btcVal, color:'#F7931A', fontSize:16}}>$220,659</span>
           <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:8, marginTop:2}}>
-            {btc24h !== null && (
-              <span style={{fontSize:12, fontWeight:700, fontFamily:"'JetBrains Mono',monospace", color: btc24h >= 0 ? '#00d084':'#ff4d6d'}}>
-                {btc24h >= 0 ? '+':''}{btc24h.toFixed(2)}% 24h
-              </span>
-            )}
-            <span style={{fontSize:11, color: btcPrice > 0 ? '#00d084' : '#ff4d6d', fontFamily:"'JetBrains Mono',monospace"}}>
-              {btcPrice > 0 ? '● Live · 30s' : '● Reconnecting…'}
+            <span style={{fontSize:12, fontWeight:700, fontFamily:"'JetBrains Mono',monospace", color:'#00d084'}}>
+              +2,107% total
+            </span>
+            <span style={{fontSize:11, color:'#3e3e52', fontFamily:"'JetBrains Mono',monospace"}}>
+              ● Static · 2017–2026
             </span>
           </div>
           {futuresPrice && (

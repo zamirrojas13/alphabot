@@ -329,7 +329,7 @@ function App() {
   const [tweaks, setTweaks]     = React.useState(TWEAK_DEFAULTS);
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
   const [data, setData]         = React.useState(MOCK);
-  const [viewMode, setViewMode] = React.useState(() => localStorage.getItem('alphabot_mode') || 'live');
+  const [viewMode, setViewMode] = React.useState('backtest');   // docs: always start in backtest
   const [simData, setSimData]   = React.useState(null);
   const [journalFilter, setJournalFilter] = React.useState(null);
   const [activeAsset, setActiveAsset] = React.useState(() => localStorage.getItem('alphabot_asset') || 'BTC');
