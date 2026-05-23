@@ -1,8 +1,63 @@
+# ── Sensitive credentials — NEVER commit ──────────────────────────
 .keys/
+*.key
+*.pem
+*.ppk
+.env
+secrets.py
+coinbase_api_key*
+telegram_token*
+
+# ── Live trading state — private financial data ────────────────────
+state_btc.json
+state_eth.json
+state.json
+state_*.json
+
+# ── Trade data — private financial records ─────────────────────────
+trades_btc.csv
+trades_eth.csv
+trades_live.csv
+trades_*.csv
+
+# ── Data files — too large for GitHub ─────────────────────────────
+btc-data/*.parquet
+btc-data/*.gz
+btc-data/*.csv
+eth-data/*.parquet
+
+# ── Logs — private operational data ───────────────────────────────
+*.log
+logs/
+bot.log
+serve_out.txt
+serve_err.txt
+
+# ── Local config overrides ─────────────────────────────────────────
+local_config.py
+config_local.py
+
+# ── Python cache ───────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
-serve_err.txt
-serve_out.txt
-*.log
-.env
+*.pyd
+.Python
+
+# ── Virtual environments ───────────────────────────────────────────
+venv/
+env/
+.venv/
+
+# ── OS files ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+
+# ── Claude AI session files ────────────────────────────────────────
+.claude/

@@ -21,7 +21,19 @@
   </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="demo-banner" style="
+  position:fixed; top:0; left:0; right:0; z-index:9999;
+  background:#1a1a0e; border-bottom:1px solid #3d3a00;
+  color:#c8b84a; font-family:'Space Grotesk',sans-serif;
+  font-size:11px; font-weight:600; letter-spacing:0.04em;
+  padding:6px 16px; display:flex; align-items:center; gap:8px;
+  pointer-events:none;">
+  <span style="opacity:0.7">&#9679;</span>
+  DEMO VIEW &mdash; Live data requires local server on port 8765.
+  This is a static UI reference only.
+  <span style="margin-left:auto; opacity:0.5; font-weight:400">github.com/zamirrojas13/alphabot</span>
+</div>
+<div id="root" style="padding-top:29px;"></div>
 
 <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
