@@ -9,6 +9,27 @@ const BRAIN_BULL    = '#00d084';
 const BRAIN_BEAR    = '#ff4d6d';
 const BRAIN_NEUTRAL = '#F7931A';
 
+const LEVEL_NAMES = {
+  prev_week_high:    "Last week's high",
+  prev_week_low:     "Last week's low",
+  prev_month_high:   "Last month's high",
+  prev_month_low:    "Last month's low",
+  prev_quarter_high: "Last quarter's high",
+  prev_quarter_low:  "Last quarter's low",
+  prev_year_high:    "Last year's high",
+  prev_year_low:     "This year's low",
+  all_time_high:     "All time high",
+  cycle_low:         "Cycle low (4yr)",
+};
+const STRENGTH_LABELS = { HIGH: 'Strong level', MEDIUM: 'Moderate level', LOW: 'Weak level' };
+const STATUS_LABELS   = {
+  WATCHING:   'Watching',
+  CONFIRMING: 'Price arrived — waiting for confirmation',
+  CONFIRMED:  'Signal taken',
+  DENIED:     'Level broken',
+};
+const levelName = t => LEVEL_NAMES[t] || t.replace(/_/g, ' ');
+
 function Brain() {
   const [levels, setLevels]           = React.useState([]);
   const [brainState, setBrainState]   = React.useState(null);
@@ -71,8 +92,15 @@ function Brain() {
         <div style={{display:'flex', alignItems:'center', gap:12}}>
           <span style={{fontSize:22, color:BRAIN_ACCENT}}>◆</span>
           <div>
-            <div style={bs.title}>AlphaBrain v4</div>
-            <div style={bs.subtitle}>Institutional Level Reaction System · Paper Trading</div>
+            <div style={{display:'flex', alignItems:'center', gap:10}}>
+              <div style={bs.title}>AlphaBrain v4</div>
+              <span style={{fontSize:10, fontWeight:700, color:BRAIN_ACCENT,
+                            background:'rgba(167,139,250,0.12)', border:'1px solid rgba(167,139,250,0.3)',
+                            borderRadius:4, padding:'2px 8px', letterSpacing:'0.5px'}}>
+                PAPER — Level Strategy
+              </span>
+            </div>
+            <div style={bs.subtitle}>Institutional Level Reaction System · Separate $1,000 paper account</div>
           </div>
         </div>
         <div style={{textAlign:'right'}}>
@@ -122,7 +150,7 @@ function Brain() {
             {brainState.active_trade.direction?.toUpperCase()} · Entry ${brainState.active_trade.entry}
           </span>
           <span style={{fontSize:12, color:'#5a5a6e'}}>
-            SL ${brainState.active_trade.sl} · Level {brainState.active_trade.level_id}
+            SL ${brainState.active_trade.sl} · {levelName(brainState.active_trade.level_type || '')}
           </span>
         </div>
       )}
@@ -137,7 +165,7 @@ function Brain() {
             <span key={l.id} style={{fontSize:12, fontFamily:"'JetBrains Mono',monospace", color:'#ece9e2',
                                      background:'rgba(167,139,250,0.15)', padding:'3px 10px',
                                      borderRadius:4, border:'1px solid rgba(167,139,250,0.3)'}}>
-              {l.id} · ${l.price.toLocaleString()} · {l.direction}
+              {levelName(l.type)} · ${l.price.toLocaleString()}
             </span>
           ))}
         </div>
@@ -216,7 +244,7 @@ function LevelColumn({ title, color, levels, currentPrice, distPct, strengthColo
                                                background:'rgba(167,139,250,0.15)', padding:'1px 6px',
                                                borderRadius:3}}>CONFIRMING</span>}
               </div>
-              <div style={{fontSize:10, color:'#3e3e52'}}>{lvl.type.replace(/_/g,' ')}</div>
+              <div style={{fontSize:10, color:'#3e3e52'}}>{levelName(lvl.type)}</div>
             </div>
             <div style={{textAlign:'right', flexShrink:0}}>
               {d !== null && (
@@ -226,7 +254,7 @@ function LevelColumn({ title, color, levels, currentPrice, distPct, strengthColo
                 </div>
               )}
               <div style={{fontSize:10, color: strengthColor(lvl.strength), marginTop:2}}>
-                {lvl.strength}
+                {STRENGTH_LABELS[lvl.strength] || lvl.strength}
               </div>
             </div>
           </div>

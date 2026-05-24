@@ -187,16 +187,33 @@ def _brain_execute(sig, levels, now):
     brain_st['trade_count']  = brain_st.get('trade_count', 0) + 1
     state_fp.write_text(_json.dumps(brain_st, indent=2))
 
-    dir_emoji = '\U0001f4c8' if sig['direction'] == 'LONG' else '\U0001f4c9'
-    macro_lbl = 'aligned' if macro_mult == 1.0 else ('neutral' if macro_mult == 0.85 else 'counter-trend')
+    _LEVEL_NAMES = {
+        'prev_week_high': "Last week's high", 'prev_week_low': "Last week's low",
+        'prev_month_high': "Last month's high", 'prev_month_low': "Last month's low",
+        'prev_quarter_high': "Last quarter's high", 'prev_quarter_low': "Last quarter's low",
+        'prev_year_high': "Last year's high", 'prev_year_low': "This year's low",
+        'all_time_high': "All time high", 'cycle_low': "Cycle low (4yr)",
+    }
+    _STRENGTH_LABELS = {'HIGH': 'Strong level', 'MEDIUM': 'Moderate level', 'LOW': 'Weak level'}
+    level_name   = _LEVEL_NAMES.get(sig['level_type'], sig['level_type'].replace('_', ' '))
+    strength_lbl = _STRENGTH_LABELS.get(sig.get('level_strength', ''), sig.get('level_strength', '?'))
+    goal_pfx     = 'Bull' if sig['direction'] == 'LONG' else 'Bear'
+    dir_word     = 'LONG (buying)' if sig['direction'] == 'LONG' else 'SHORT (selling)'
+    macro_lbl    = ('Aligned with trend' if macro_mult == 1.0
+                    else 'Neutral' if macro_mult == 0.85
+                    else 'Going against yearly trend — smaller position used')
     msg = (
-        f"{dir_emoji} *AlphaBrain Signal*\n\n"
-        f"Level: `{sig['level_id']}` ({sig['level_type'].replace('_', ' ')})\n"
-        f"Direction: *{sig['direction']}* | Strength: {sig.get('level_strength', '?')}\n"
-        f"Entry: `${sig['entry']:,.0f}` | SL: `${sig['sl']:,.0f}`\n"
-        f"G1: `${sig['goal_1']:,.0f}` | G2: `${sig['goal_2']:,.0f}` | G3: `${sig['goal_3']:,.0f}`\n"
-        f"Contracts: `{contracts}` | Macro: {macro_lbl} ({macro_mult}x)\n"
-        f"_Paper mode_"
+        f"🧠 LEVEL STRATEGY\n"
+        f"Price rejected at {level_name}\n\n"
+        f"Direction: *{dir_word}*\n"
+        f"Enter near: `${sig['entry']:,.0f}`\n"
+        f"Stop loss: `${sig['sl']:,.0f}`\n"
+        f"1st {goal_pfx} Goal: `${sig['goal_1']:,.0f}`\n"
+        f"2nd {goal_pfx} Goal: `${sig['goal_2']:,.0f}`\n"
+        f"3rd {goal_pfx} Goal: `${sig['goal_3']:,.0f}`\n\n"
+        f"Level: {level_name} — {strength_lbl}\n"
+        f"Contracts: `{contracts}` | Macro: {macro_lbl}\n"
+        f"_Paper mode — AlphaBrain v4_"
     )
     try:
         send_message(msg)
@@ -257,7 +274,7 @@ def run_scan() -> None:
     port_dd = st.get("portfolio_dd_pct", 0.0) or 0.0
     if port_dd <= config.DD_CIRCUIT_BREAKER:
         if not st.get("circuit_breaker_alerted"):
-            send_message("Circuit Breaker: DD " + str(round(port_dd,1)) + "% hit limit " + str(config.DD_CIRCUIT_BREAKER) + "%. All trading paused. /resume to restart.")
+            send_message("⚙️ ALPHABOT SYSTEM\n\nCircuit Breaker: DD " + str(round(port_dd,1)) + "% hit limit " + str(config.DD_CIRCUIT_BREAKER) + "%. All trading paused. /resume to restart.")
             st["bot_paused"] = True
             st["circuit_breaker_alerted"] = True
             state.save(st)
@@ -270,7 +287,7 @@ def run_scan() -> None:
     loss_streak = st.get("loss_streak", 0)
     size_multiplier = 1.0
     if loss_streak >= config.LOSS_STREAK_PAUSE:
-        send_message("Loss streak: " + str(loss_streak) + " losses. Trading paused. /resume to restart.")
+        send_message("⚙️ ALPHABOT SYSTEM\n\nLoss streak: " + str(loss_streak) + " losses. Trading paused. /resume to restart.")
         st["bot_paused"] = True
         state.save(st)
         print("  [LOSS STREAK] " + str(loss_streak) + " losses — pausing.")
@@ -330,6 +347,7 @@ def send_heartbeat() -> None:
         else:
             trade_line = "⏸ No open trade"
         msg = (
+            f"⚙️ ALPHABOT SYSTEM\n\n"
             f"🤖 *Bot alive* — {mode}\n\n"
             f"Last scan: {last}\n"
             f"{trade_line}\n\n"
@@ -486,10 +504,10 @@ def run_daily_selftest() -> None:
         ok = False
 
     if ok:
-        send_message("✅ *Daily self-test passed*\n" + "\n".join(f"  ✓ {n}: {m}" for n, _, m in results))
+        send_message("⚙️ ALPHABOT SYSTEM\n\n✅ *Daily self-test passed*\n" + "\n".join(f"  ✓ {n}: {m}" for n, _, m in results))
     else:
         lines = "\n".join(f"  {'✓' if s else '✗'} {n}: {m}" for n, s, m in results)
-        send_message(f"⚠️ *Daily self-test FAILED*\n\n{lines}\n\n_Trading continues but check needed._")
+        send_message(f"⚙️ ALPHABOT SYSTEM\n\n⚠️ *Daily self-test FAILED*\n\n{lines}\n\n_Trading continues but check needed._")
 
 
 def _startup_self_test() -> None:
@@ -615,7 +633,7 @@ def main():
             if now_ts - last_sent > 600:
                 _tg_last_sent[err_type] = now_ts
                 try:
-                    send_message(f"⚠️ *Bot loop error* — {e}\n_Attempting to continue..._")
+                    send_message(f"⚙️ ALPHABOT SYSTEM\n\n⚠️ *Bot loop error* — {e}\n_Attempting to continue..._")
                 except Exception:
                     pass
 
@@ -631,6 +649,7 @@ def main():
             if same_type_count >= 3:
                 try:
                     send_message(
+                        f"⚙️ ALPHABOT SYSTEM\n\n"
                         f"🔴 CIRCUIT BREAKER — `{err_type}` fired {same_type_count}x "
                         f"in 5 min. Bot shutting down for safety.\n"
                         f"Run `sudo systemctl start alphabot` to restart."
@@ -651,6 +670,7 @@ if __name__ == "__main__":
         traceback.print_exc()
         try:
             send_message(
+                f"⚙️ ALPHABOT SYSTEM\n\n"
                 f"💀 *Bot crashed* — fatal error\n\n`{type(_fatal).__name__}: {_fatal}`\n\n"
                 "_Restart main.py to resume trading._"
             )

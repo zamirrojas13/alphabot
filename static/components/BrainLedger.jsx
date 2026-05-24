@@ -7,6 +7,15 @@
 const BL_ACCENT  = '#a78bfa';
 const BRAIN_START = 1000;
 
+const BL_LEVEL_NAMES = {
+  prev_week_high: "Last week's high", prev_week_low: "Last week's low",
+  prev_month_high: "Last month's high", prev_month_low: "Last month's low",
+  prev_quarter_high: "Last quarter's high", prev_quarter_low: "Last quarter's low",
+  prev_year_high: "Last year's high", prev_year_low: "This year's low",
+  all_time_high: "All time high", cycle_low: "Cycle low (4yr)",
+};
+const blLevelName = t => BL_LEVEL_NAMES[t] || (t || '').replace(/_/g, ' ');
+
 // Backtest baseline for comparison
 const BASELINE = { cagr: 9.6, wr: 21.7, avgR: 0.502, tradesPerYear: 8.7, maxDD: -25.1 };
 
@@ -88,7 +97,14 @@ function BrainLedger() {
         <div style={{display:'flex', alignItems:'center', gap:10}}>
           <span style={{fontSize:20, color:BL_ACCENT}}>◑</span>
           <div>
-            <div style={blS.title}>Brain Ledger</div>
+            <div style={{display:'flex', alignItems:'center', gap:10}}>
+              <div style={blS.title}>Brain Ledger</div>
+              <span style={{fontSize:10, fontWeight:700, color:BL_ACCENT,
+                            background:'rgba(167,139,250,0.12)', border:'1px solid rgba(167,139,250,0.3)',
+                            borderRadius:4, padding:'2px 8px', letterSpacing:'0.5px'}}>
+                PAPER — Level Strategy
+              </span>
+            </div>
             <div style={blS.subtitle}>AlphaBrain v4 P&amp;L · $1,000 paper account · isolated from AlphaBot</div>
           </div>
         </div>
@@ -177,7 +193,7 @@ function BrainLedger() {
                           {t.direction}
                         </td>
                         <td style={{...blS.td, fontSize:10, color:'#5a5a6e'}}>
-                          {(t.level_type || '').replace(/_/g,' ')}
+                          {blLevelName(t.level_type)}
                         </td>
                         <td style={{...blS.td, fontFamily:"'JetBrains Mono',monospace"}}>
                           {t.entry ? `$${parseFloat(t.entry).toLocaleString('en-US', {maximumFractionDigits:0})}` : '—'}

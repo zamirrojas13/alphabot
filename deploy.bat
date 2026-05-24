@@ -29,7 +29,7 @@ if errorlevel 1 ( echo [WARN] Nothing to commit - continuing to deploy )
 :: 4. Push to GitHub
 echo.
 echo [4/9] Pushing to origin main...
-git push origin main
+git push origin master
 if errorlevel 1 ( echo ERROR: git push failed & exit /b 1 )
 
 :: 5. SCP changed files to server

@@ -6,6 +6,16 @@
 
 const BJ_ACCENT = '#a78bfa';
 
+const BJ_LEVEL_NAMES = {
+  prev_week_high: "Last week's high", prev_week_low: "Last week's low",
+  prev_month_high: "Last month's high", prev_month_low: "Last month's low",
+  prev_quarter_high: "Last quarter's high", prev_quarter_low: "Last quarter's low",
+  prev_year_high: "Last year's high", prev_year_low: "This year's low",
+  all_time_high: "All time high", cycle_low: "Cycle low (4yr)",
+};
+const BJ_STRENGTH = { HIGH: 'Strong', MEDIUM: 'Moderate', LOW: 'Weak' };
+const bjLevelName = t => BJ_LEVEL_NAMES[t] || (t || '').replace(/_/g, ' ');
+
 function BrainJournal() {
   const [trades, setTrades] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -71,7 +81,14 @@ function BrainJournal() {
         <div style={{display:'flex', alignItems:'center', gap:10}}>
           <span style={{fontSize:20, color:BJ_ACCENT}}>◗</span>
           <div>
-            <div style={bjS.title}>Brain Journal</div>
+            <div style={{display:'flex', alignItems:'center', gap:10}}>
+              <div style={bjS.title}>Brain Journal</div>
+              <span style={{fontSize:10, fontWeight:700, color:BJ_ACCENT,
+                            background:'rgba(167,139,250,0.12)', border:'1px solid rgba(167,139,250,0.3)',
+                            borderRadius:4, padding:'2px 8px', letterSpacing:'0.5px'}}>
+                PAPER — Level Strategy
+              </span>
+            </div>
             <div style={bjS.subtitle}>AlphaBrain v4 trades only · isolated from AlphaBot</div>
           </div>
         </div>
@@ -122,11 +139,10 @@ function BrainJournal() {
           <table style={bjS.table}>
             <thead>
               <tr>
-                <Th col="trade_id">ID</Th>
                 <Th col="timestamp_entry">Date</Th>
                 <Th col="direction">Dir</Th>
-                <Th col="level_id">Level</Th>
-                <Th col="level_type">Type</Th>
+                <Th col="level_type">Level</Th>
+                <Th col="level_price">Level $</Th>
                 <Th col="level_strength">Strength</Th>
                 <Th col="entry">Entry</Th>
                 <Th col="sl">SL</Th>
@@ -144,8 +160,6 @@ function BrainJournal() {
                     background: i % 2 === 0 ? '#0d0d11' : 'transparent',
                     opacity: isOpen ? 1 : 0.85,
                   }}>
-                    <td style={{...bjS.td, color: BJ_ACCENT, fontFamily:"'JetBrains Mono',monospace",
-                                 fontSize:10}}>{t.trade_id || '—'}</td>
                     <td style={{...bjS.td, color:'#5a5a6e', fontSize:10}}>
                       {(t.timestamp_entry || '').slice(0,16).replace('T',' ')}
                       {isOpen && <span style={{marginLeft:6, fontSize:9, color:BJ_ACCENT,
@@ -154,15 +168,16 @@ function BrainJournal() {
                     </td>
                     <td style={{...bjS.td, color: dirColor(t.direction), fontWeight:600,
                                  fontSize:11}}>{t.direction}</td>
-                    <td style={{...bjS.td, fontSize:10, fontFamily:"'JetBrains Mono',monospace",
-                                 color:'#ece9e2'}}>{t.level_id || '—'}</td>
+                    <td style={{...bjS.td, fontSize:10, color:'#ece9e2'}}>
+                      {bjLevelName(t.level_type)}
+                    </td>
                     <td style={{...bjS.td, fontSize:10, color:'#5a5a6e'}}>
-                      {(t.level_type || '').replace(/_/g,' ')}
+                      ${t.level_price ? parseFloat(t.level_price).toLocaleString('en-US', {maximumFractionDigits:0}) : '—'}
                     </td>
                     <td style={{...bjS.td, fontSize:10}}>
                       <span style={{color: t.level_strength === 'HIGH' ? '#00d084'
                                          : t.level_strength === 'MEDIUM' ? '#F7931A' : '#5a5a6e'}}>
-                        {t.level_strength || '—'}
+                        {BJ_STRENGTH[t.level_strength] || t.level_strength || '—'}
                       </span>
                     </td>
                     <td style={{...bjS.td, fontFamily:"'JetBrains Mono',monospace", fontSize:11}}>
