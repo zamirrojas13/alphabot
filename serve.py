@@ -248,6 +248,41 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/favicon.ico":
             self.send_response(204); self.end_headers(); return
+        # ── AlphaBrain read-only endpoints ────────────────────────────────────
+        if path == "/api/brain/levels":
+            fp = Path(__file__).parent / 'brain_levels.json'
+            try:
+                payload = json.loads(fp.read_text(encoding='utf-8')) if fp.exists() else {"levels": [], "last_updated": None}
+                return self._send_json(payload)
+            except Exception as e:
+                return self._send_json({"err": str(e)}, 500)
+        if path == "/api/brain/state":
+            fp = Path(__file__).parent / 'brain_state.json'
+            try:
+                payload = json.loads(fp.read_text(encoding='utf-8')) if fp.exists() else {}
+                return self._send_json(payload)
+            except Exception as e:
+                return self._send_json({"err": str(e)}, 500)
+        if path == "/api/brain/trades":
+            fp = Path(__file__).parent / 'brain_trades.csv'
+            if not fp.exists():
+                return self._send_json({"trades": []})
+            try:
+                trades = []
+                with open(fp, newline='', encoding='utf-8') as f:
+                    for row in csv.DictReader(f):
+                        for k in ("entry", "sl", "goal_1", "goal_2", "goal_3",
+                                  "exit_price", "r_multiple", "pnl_usd", "level_price"):
+                            v = row.get(k)
+                            if v not in (None, "", "None"):
+                                try: row[k] = float(v)
+                                except: pass
+                        row["open"] = not row.get("exit_price")
+                        trades.append(row)
+                return self._send_json({"trades": trades})
+            except Exception as e:
+                return self._send_json({"err": str(e)}, 500)
+        # ── End Brain endpoints ────────────────────────────────────────────────
         if path == "/api/chart/history":
             from urllib.parse import parse_qs
             qs    = parse_qs(urlparse(self.path).query)
@@ -445,15 +480,44 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     dd_pct = round((peak - equity) / peak * 100, 2) if peak else 0.0
                 except Exception:
                     pass
+            # ── Brain fields (additive) ───────────────────────────────────────
+            brain_active_trade = False
+            brain_equity       = 1000.0
+            brain_last_scan    = None
+            brain_watching     = 0
+            brain_confirming   = 0
+            try:
+                _bst_fp = Path(__file__).parent / 'brain_state.json'
+                if _bst_fp.exists():
+                    _bst = json.loads(_bst_fp.read_text(encoding='utf-8'))
+                    brain_active_trade = bool(_bst.get('active_trade'))
+                    brain_equity       = float(_bst.get('equity', 1000))
+                    brain_last_scan    = _bst.get('last_updated')
+                _blv_fp = Path(__file__).parent / 'brain_levels.json'
+                if _blv_fp.exists():
+                    _blv = json.loads(_blv_fp.read_text(encoding='utf-8'))
+                    for _lv in _blv.get('levels', []):
+                        if _lv.get('status') == 'WATCHING':    brain_watching  += 1
+                        if _lv.get('status') == 'CONFIRMING':  brain_confirming += 1
+                    brain_last_scan = brain_last_scan or _blv.get('last_updated')
+            except Exception:
+                pass
             return self._send_json({
-                "status":             status,
-                "uptime_seconds":     int(time.time() - _START_TIME),
-                "last_scan_utc":      last_scan_utc,
-                "signals_fired_today": signals_today,
-                "open_position":      open_pos,
-                "loss_streak":        st.get("loss_streak", 0),
-                "portfolio_dd_pct":   dd_pct,
-                "bot_version":        BOT_VERSION,
+                "status":                    status,
+                "uptime_seconds":            int(time.time() - _START_TIME),
+                "last_scan_utc":             last_scan_utc,
+                "signals_fired_today":       signals_today,
+                "open_position":             open_pos,
+                "loss_streak":               st.get("loss_streak", 0),
+                "portfolio_dd_pct":          dd_pct,
+                "bot_version":               BOT_VERSION,
+                "alphabot_active_trade":     open_pos,
+                "alphabot_equity":           float(st.get("equity", 0) or 0),
+                "alphabrain_active_trade":   brain_active_trade,
+                "alphabrain_equity":         brain_equity,
+                "brain_last_scan_utc":       brain_last_scan,
+                "brain_levels_watching":     brain_watching,
+                "brain_levels_confirming":   brain_confirming,
             })
         if path == "/api/health":
             return self._send_json({"ok": True, "ts": int(time.time()),

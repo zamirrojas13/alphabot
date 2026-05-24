@@ -13,6 +13,8 @@ state_btc.json
 state_eth.json
 state.json
 state_*.json
+brain_state.json
+brain_levels.json
 
 # ── Trade data — private financial records ─────────────────────────
 trades_btc.csv
@@ -21,6 +23,7 @@ trades_live.csv
 trades_*.csv
 
 # ── Data files — too large for GitHub ─────────────────────────────
+*.parquet
 btc-data/*.parquet
 btc-data/*.gz
 btc-data/*.csv

@@ -13,6 +13,9 @@ const NAV_ITEMS = [
   { id: 'telegram',    label: 'Telegram',     icon: '✦' },
   { id: 'brief',       label: 'Morning Brief',icon: '☀' },
   { id: 'coinbase',    label: 'Coinbase',     icon: '₿' },
+  { id: 'brain',         label: 'Brain',        icon: '◆' },
+  { id: 'brain-journal', label: 'Brain Journal', icon: '◗' },
+  { id: 'brain-ledger',  label: 'Brain Ledger',  icon: '◑' },
 ];
 
 const MODE_CFG = {
